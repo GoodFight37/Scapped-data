@@ -1,0 +1,62 @@
+{
+	"m_Layers": [
+		"Default",
+		"TransparentFX",
+		"Ignore Raycast",
+		"",
+		"Water",
+		"UI",
+		"",
+		"",
+		"",
+		"Generic1",
+		"Generic2",
+		"",
+		"Generic3",
+		"Generic4",
+		"Generic5",
+		"Generic6",
+		"",
+		"CardUIText",
+		"CardUIMetallic",
+		"ARObject",
+		"ARBackground",
+		"UICardViewRenderer",
+		"",
+		"",
+		"",
+		"",
+		"CommonUIVfx",
+		"CardPostProcessing",
+		"BattlePostProcessing",
+		"UIPostProcessing",
+		"",
+		"PackPostProcessing"
+	],
+	"m_RenderingLayers": [
+		"Default",
+		"Light Layer 1",
+		"Light Layer 2",
+		"Light Layer 3",
+		"Light Layer 4",
+		"Light Layer 5",
+		"Light Layer 6",
+		"Light Layer 7"
+	],
+	"m_SortingLayers": [
+		{
+			"m_Locked": false,
+			"m_Name": "Default",
+			"m_UniqueID": 0
+		},
+		{
+			"m_Locked": false,
+			"m_Name": "FlipCard",
+			"m_UniqueID": 4028268651
+		}
+	],
+	"m_Tags": [
+		"notPreventTouchInput",
+		"UICommonCamera"
+	]
+}

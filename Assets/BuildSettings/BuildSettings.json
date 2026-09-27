@@ -1,0 +1,36 @@
+{
+	"m_AuthToken": "ca80828147ee00aef496ee3005b5525d52d6eacd",
+	"m_BuildTags": [],
+	"m_EnabledVRDevices": [],
+	"m_EnableDynamicBatching": false,
+	"m_GraphicsAPIs": [
+		21
+	],
+	"m_HasAdvancedVersion": true,
+	"m_HasClusterRendering": false,
+	"m_HasLocalLightShadows": true,
+	"m_HasPROVersion": true,
+	"m_HasPublishingRights": true,
+	"m_HasShadows": true,
+	"m_HasSoftShadows": true,
+	"m_HideFlags": 0,
+	"m_IsEducationalBuild": false,
+	"m_IsEmbedded": false,
+	"m_IsNoWatermarkBuild": true,
+	"m_IsPrototypingBuild": false,
+	"m_IsTrial": false,
+	"m_PreloadedPlugins": [
+		"libbacktrace-native",
+		"libnative-lib"
+	],
+	"m_Scenes": [
+		"Assets/Lettuce/Scenes/AppBootScene.unity",
+		"Assets/Lettuce/Scenes/AppInitScene.unity",
+		"Assets/Lettuce/Scenes/AppResetScene.unity",
+		"Assets/Lettuce/Scenes/UICommonScene.unity",
+		"Assets/Lettuce/Scenes/AppSplashScene.unity",
+		"Assets/Lettuce/Scenes/AppReloadAssetDownloadScene.unity"
+	],
+	"m_UsesOnMouseEvents": false,
+	"m_Version": "6000.0.78f1"
+}
