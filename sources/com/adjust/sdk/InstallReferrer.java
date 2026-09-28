@@ -1,0 +1,386 @@
+package com.adjust.sdk;
+
+import android.content.Context;
+import com.adjust.sdk.scheduler.SingleThreadCachedScheduler;
+import com.adjust.sdk.scheduler.ThreadExecutor;
+import com.adjust.sdk.scheduler.TimerOnce;
+import java.lang.reflect.InvocationHandler;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
+import java.lang.reflect.Proxy;
+import java.util.concurrent.atomic.AtomicBoolean;
+
+/* JADX INFO: loaded from: classes.dex */
+public class InstallReferrer implements InvocationHandler {
+    private static final String PACKAGE_BASE_NAME = "com.android.installreferrer.";
+    private static final int STATUS_DEVELOPER_ERROR = 3;
+    private static final int STATUS_FEATURE_NOT_SUPPORTED = 2;
+    private static final int STATUS_OK = 0;
+    private static final int STATUS_SERVICE_DISCONNECTED = -1;
+    private static final int STATUS_SERVICE_UNAVAILABLE = 1;
+    private Context context;
+    private final InstallReferrerReadListener referrerCallback;
+    private Object referrerClient;
+    private int retryWaitTime = 3000;
+    private ILogger logger = AdjustFactory.getLogger();
+    private final AtomicBoolean shouldTryToRead = new AtomicBoolean(true);
+    private int retries = 0;
+    private TimerOnce retryTimer = new TimerOnce(new a(), "InstallReferrer");
+    private ThreadExecutor executor = new SingleThreadCachedScheduler("InstallReferrer");
+
+    public class a implements Runnable {
+        public a() {
+        }
+
+        @Override // java.lang.Runnable
+        public final void run() {
+            InstallReferrer.this.startConnection();
+        }
+    }
+
+    public class b implements Runnable {
+
+        /* JADX INFO: renamed from: a, reason: collision with root package name */
+        public final /* synthetic */ Object f80a;
+        public final /* synthetic */ Method b;
+        public final /* synthetic */ Object[] c;
+
+        public b(Object obj, Method method, Object[] objArr) {
+            this.f80a = obj;
+            this.b = method;
+            this.c = objArr;
+        }
+
+        @Override // java.lang.Runnable
+        public final void run() {
+            try {
+                InstallReferrer.this.invokeI(this.f80a, this.b, this.c);
+            } catch (Throwable th) {
+                InstallReferrer.this.referrerCallback.onFail(Util.formatString("invoke error (%s) thrown by (%s)", th.getMessage(), th.getClass().getCanonicalName()));
+            }
+        }
+    }
+
+    public InstallReferrer(Context context, InstallReferrerReadListener installReferrerReadListener) {
+        this.context = context;
+        this.referrerCallback = installReferrerReadListener;
+    }
+
+    private void closeReferrerClient() {
+        Object obj = this.referrerClient;
+        if (obj == null) {
+            return;
+        }
+        try {
+            Reflection.invokeInstanceMethod(obj, "endConnection", null, new Object[0]);
+            this.logger.debug("Install Referrer API connection closed", new Object[0]);
+        } catch (Exception e) {
+            this.logger.error("closeReferrerClient error (%s) thrown by (%s)", e.getMessage(), e.getClass().getCanonicalName());
+        }
+        this.referrerClient = null;
+    }
+
+    private Object createInstallReferrerClient(Context context) {
+        InstallReferrerReadListener installReferrerReadListener;
+        String string;
+        try {
+            return Reflection.invokeInstanceMethod(Reflection.invokeStaticMethod("com.android.installreferrer.api.InstallReferrerClient", "newBuilder", new Class[]{Context.class}, context), "build", null, new Object[0]);
+        } catch (ClassNotFoundException e) {
+            installReferrerReadListener = this.referrerCallback;
+            string = Util.formatString("InstallReferrer not integrated in project (%s) thrown by (%s)", e.getMessage(), e.getClass().getCanonicalName());
+            installReferrerReadListener.onFail(string);
+            return null;
+        } catch (Exception e2) {
+            installReferrerReadListener = this.referrerCallback;
+            string = Util.formatString("createInstallReferrerClient error (%s) from (%s)", e2.getMessage(), e2.getClass().getCanonicalName());
+            installReferrerReadListener.onFail(string);
+            return null;
+        }
+    }
+
+    private Object createProxyInstallReferrerStateListener(Class cls) {
+        InstallReferrerReadListener installReferrerReadListener;
+        String str;
+        try {
+            return Proxy.newProxyInstance(cls.getClassLoader(), new Class[]{cls}, this);
+        } catch (IllegalArgumentException unused) {
+            installReferrerReadListener = this.referrerCallback;
+            str = "InstallReferrer proxy violating parameter restrictions";
+            installReferrerReadListener.onFail(str);
+            return null;
+        } catch (NullPointerException unused2) {
+            installReferrerReadListener = this.referrerCallback;
+            str = "Null argument passed to InstallReferrer proxy";
+            installReferrerReadListener.onFail(str);
+            return null;
+        }
+    }
+
+    private Boolean getBooleanGooglePlayInstantParam(Object obj) {
+        if (obj == null) {
+            return null;
+        }
+        try {
+            return Boolean.valueOf(((Boolean) Reflection.invokeInstanceMethod(obj, "getGooglePlayInstantParam", null, new Object[0])).booleanValue());
+        } catch (Exception unused) {
+            return null;
+        }
+    }
+
+    private long getInstallBeginTimestampSeconds(Object obj) {
+        if (obj == null) {
+            return -1L;
+        }
+        try {
+            return ((Long) Reflection.invokeInstanceMethod(obj, "getInstallBeginTimestampSeconds", null, new Object[0])).longValue();
+        } catch (Exception e) {
+            this.logger.error("getInstallBeginTimestampSeconds error (%s) thrown by (%s)", e.getMessage(), e.getClass().getCanonicalName());
+            return -1L;
+        }
+    }
+
+    private long getInstallBeginTimestampServerSeconds(Object obj) {
+        if (obj == null) {
+            return -1L;
+        }
+        try {
+            return ((Long) Reflection.invokeInstanceMethod(obj, "getInstallBeginTimestampServerSeconds", null, new Object[0])).longValue();
+        } catch (Exception unused) {
+            return -1L;
+        }
+    }
+
+    private Object getInstallReferrer() {
+        Object obj = this.referrerClient;
+        if (obj == null) {
+            return null;
+        }
+        try {
+            return Reflection.invokeInstanceMethod(obj, "getInstallReferrer", null, new Object[0]);
+        } catch (Exception e) {
+            this.logger.error("getInstallReferrer error (%s) thrown by (%s)", e.getMessage(), e.getClass().getCanonicalName());
+            return null;
+        }
+    }
+
+    private Class getInstallReferrerStateListenerClass() {
+        try {
+            return Class.forName("com.android.installreferrer.api.InstallReferrerStateListener");
+        } catch (Exception e) {
+            this.referrerCallback.onFail(Util.formatString("getInstallReferrerStateListenerClass error (%s) from (%s)", e.getMessage(), e.getClass().getCanonicalName()));
+            return null;
+        }
+    }
+
+    private long getReferrerClickTimestampSeconds(Object obj) {
+        if (obj == null) {
+            return -1L;
+        }
+        try {
+            return ((Long) Reflection.invokeInstanceMethod(obj, "getReferrerClickTimestampSeconds", null, new Object[0])).longValue();
+        } catch (Exception e) {
+            this.logger.error("getReferrerClickTimestampSeconds error (%s) thrown by (%s)", e.getMessage(), e.getClass().getCanonicalName());
+            return -1L;
+        }
+    }
+
+    private long getReferrerClickTimestampServerSeconds(Object obj) {
+        if (obj == null) {
+            return -1L;
+        }
+        try {
+            return ((Long) Reflection.invokeInstanceMethod(obj, "getReferrerClickTimestampServerSeconds", null, new Object[0])).longValue();
+        } catch (Exception unused) {
+            return -1L;
+        }
+    }
+
+    private String getStringInstallReferrer(Object obj) {
+        if (obj == null) {
+            return null;
+        }
+        try {
+            return (String) Reflection.invokeInstanceMethod(obj, "getInstallReferrer", null, new Object[0]);
+        } catch (Exception e) {
+            this.logger.error("getStringInstallReferrer error (%s) thrown by (%s)", e.getMessage(), e.getClass().getCanonicalName());
+            return null;
+        }
+    }
+
+    private String getStringInstallVersion(Object obj) {
+        if (obj == null) {
+            return null;
+        }
+        try {
+            return (String) Reflection.invokeInstanceMethod(obj, "getInstallVersion", null, new Object[0]);
+        } catch (Exception unused) {
+            return null;
+        }
+    }
+
+    /* JADX INFO: Access modifiers changed from: private */
+    public Object invokeI(Object obj, Method method, Object[] objArr) {
+        InstallReferrerReadListener installReferrerReadListener;
+        String string;
+        if (method == null) {
+            installReferrerReadListener = this.referrerCallback;
+            string = "InstallReferrer invoke method null";
+        } else {
+            String name = method.getName();
+            if (name != null) {
+                this.logger.debug("InstallReferrer invoke method name: %s", name);
+                if (objArr == null) {
+                    this.logger.warn("InstallReferrer invoke args null", new Object[0]);
+                    objArr = new Object[0];
+                }
+                for (Object obj2 : objArr) {
+                    this.logger.debug("InstallReferrer invoke arg: %s", obj2);
+                }
+                if (name.equals("onInstallReferrerSetupFinished")) {
+                    if (objArr.length != 1) {
+                        installReferrerReadListener = this.referrerCallback;
+                        string = Util.formatString("InstallReferrer invoke onInstallReferrerSetupFinished args lenght not 1: %d", Integer.valueOf(objArr.length));
+                    } else {
+                        Object obj3 = objArr[0];
+                        if (obj3 instanceof Integer) {
+                            Integer num = (Integer) obj3;
+                            if (num == null) {
+                                installReferrerReadListener = this.referrerCallback;
+                                string = "InstallReferrer invoke onInstallReferrerSetupFinished responseCode arg is null";
+                            } else {
+                                onInstallReferrerSetupFinishedIntI(num.intValue());
+                            }
+                        } else {
+                            installReferrerReadListener = this.referrerCallback;
+                            string = "InstallReferrer invoke onInstallReferrerSetupFinished arg not int";
+                        }
+                    }
+                } else if (name.equals("onInstallReferrerServiceDisconnected")) {
+                    this.logger.debug("Connection to install referrer service was lost. Retrying ...", new Object[0]);
+                    retryI("onInstallReferrerServiceDisconnected");
+                } else {
+                    this.referrerCallback.onFail(Util.formatString("Reflection call method name not expected: %s", name));
+                }
+                return null;
+            }
+            installReferrerReadListener = this.referrerCallback;
+            string = "InstallReferrer invoke method name null";
+        }
+        installReferrerReadListener.onFail(string);
+        return null;
+    }
+
+    private void onInstallReferrerSetupFinishedIntI(int i) {
+        if (i != -1) {
+            if (i == 0) {
+                try {
+                    Object installReferrer = getInstallReferrer();
+                    String stringInstallReferrer = getStringInstallReferrer(installReferrer);
+                    long referrerClickTimestampSeconds = getReferrerClickTimestampSeconds(installReferrer);
+                    long installBeginTimestampSeconds = getInstallBeginTimestampSeconds(installReferrer);
+                    this.logger.debug("installReferrer: %s, clickTime: %d, installBeginTime: %d", stringInstallReferrer, Long.valueOf(referrerClickTimestampSeconds), Long.valueOf(installBeginTimestampSeconds));
+                    String stringInstallVersion = getStringInstallVersion(installReferrer);
+                    long referrerClickTimestampServerSeconds = getReferrerClickTimestampServerSeconds(installReferrer);
+                    long installBeginTimestampServerSeconds = getInstallBeginTimestampServerSeconds(installReferrer);
+                    Boolean booleanGooglePlayInstantParam = getBooleanGooglePlayInstantParam(installReferrer);
+                    this.logger.debug("installVersion: %s, clickTimeServer: %d, installBeginServer: %d, googlePlayInstant: %b", stringInstallVersion, Long.valueOf(referrerClickTimestampServerSeconds), Long.valueOf(installBeginTimestampServerSeconds), booleanGooglePlayInstantParam);
+                    this.logger.debug("Install Referrer read successfully. Closing connection", new Object[0]);
+                    this.referrerCallback.onInstallReferrerRead(new ReferrerDetails(stringInstallReferrer, referrerClickTimestampSeconds, installBeginTimestampSeconds, referrerClickTimestampServerSeconds, installBeginTimestampServerSeconds, stringInstallVersion, booleanGooglePlayInstantParam, null), Constants.REFERRER_API_GOOGLE);
+                } catch (Exception e) {
+                    this.logger.warn("Couldn't get install referrer from client (%s). Retrying...", e.getMessage());
+                }
+            } else if (i == 1) {
+                this.logger.debug("Could not initiate connection to the Install Referrer service. Retrying...", new Object[0]);
+            } else if (i == 2) {
+                this.referrerCallback.onFail("Install Referrer API not supported by the installed Play Store app. Closing connection");
+            } else if (i != 3) {
+                this.referrerCallback.onFail(Util.formatString("Unexpected response code of install referrer response: %d. Closing connection", Integer.valueOf(i)));
+            } else {
+                this.logger.debug("Install Referrer API general errors caused by incorrect usage. Retrying...", new Object[0]);
+            }
+            this.shouldTryToRead.set(false);
+            closeReferrerClient();
+            return;
+        }
+        this.logger.debug("Play Store service is not connected now. Retrying...", new Object[0]);
+        retryI("end of onInstallReferrerSetupFinishedIntI");
+    }
+
+    private void retryI(String str) {
+        if (!this.shouldTryToRead.get()) {
+            this.referrerCallback.onFail(Util.formatString("Should not try to read Install referrer from %s", str));
+            closeReferrerClient();
+            return;
+        }
+        if (this.retries + 1 > 2) {
+            this.referrerCallback.onFail(Util.formatString("Limit number of retry of %d for install referrer surpassed from %s", 2, str));
+            return;
+        }
+        long fireIn = this.retryTimer.getFireIn();
+        if (fireIn > 0) {
+            this.logger.debug("Already waiting to retry to read install referrer in %d milliseconds", Long.valueOf(fireIn));
+            return;
+        }
+        int i = this.retries + 1;
+        this.retries = i;
+        this.logger.debug("Retry number %d to connect to install referrer API", Integer.valueOf(i));
+        this.retryTimer.startIn(this.retryWaitTime);
+    }
+
+    @Override // java.lang.reflect.InvocationHandler
+    public Object invoke(Object obj, Method method, Object[] objArr) {
+        this.executor.submit(new b(obj, method, objArr));
+        return null;
+    }
+
+    public void startConnection() {
+        Class installReferrerStateListenerClass;
+        Object objCreateProxyInstallReferrerStateListener;
+        InstallReferrerReadListener installReferrerReadListener;
+        String str;
+        if (AdjustFactory.getTryInstallReferrer()) {
+            closeReferrerClient();
+            if (this.shouldTryToRead.get()) {
+                Context context = this.context;
+                if (context != null) {
+                    Object objCreateInstallReferrerClient = createInstallReferrerClient(context);
+                    this.referrerClient = objCreateInstallReferrerClient;
+                    if (objCreateInstallReferrerClient == null || (installReferrerStateListenerClass = getInstallReferrerStateListenerClass()) == null || (objCreateProxyInstallReferrerStateListener = createProxyInstallReferrerStateListener(installReferrerStateListenerClass)) == null) {
+                        return;
+                    }
+                    startConnection(installReferrerStateListenerClass, objCreateProxyInstallReferrerStateListener);
+                    return;
+                }
+                installReferrerReadListener = this.referrerCallback;
+                str = "Requires context to read the install referrer";
+            } else {
+                installReferrerReadListener = this.referrerCallback;
+                str = "Should not try to read the install referrer any longer";
+            }
+        } else {
+            installReferrerReadListener = this.referrerCallback;
+            str = "Sdk has been configured to not try install referrer";
+        }
+        installReferrerReadListener.onFail(str);
+    }
+
+    private void startConnection(Class cls, Object obj) {
+        InstallReferrerReadListener installReferrerReadListener;
+        String string;
+        try {
+            Reflection.invokeInstanceMethod(this.referrerClient, "startConnection", new Class[]{cls}, obj);
+        } catch (InvocationTargetException e) {
+            if (!Util.hasRootCause(e)) {
+                this.referrerCallback.onFail("InstallReferrer encountered an InvocationTargetException");
+                return;
+            }
+            installReferrerReadListener = this.referrerCallback;
+            string = Util.formatString("InstallReferrer encountered an InvocationTargetException %s", Util.getRootCause(e));
+            installReferrerReadListener.onFail(string);
+        } catch (Exception e2) {
+            installReferrerReadListener = this.referrerCallback;
+            string = Util.formatString("startConnection error (%s) thrown by (%s)", e2.getMessage(), e2.getClass().getCanonicalName());
+            installReferrerReadListener.onFail(string);
+        }
+    }
+}

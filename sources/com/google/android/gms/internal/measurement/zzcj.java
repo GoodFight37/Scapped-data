@@ -1,0 +1,14 @@
+package com.google.android.gms.internal.measurement;
+
+import android.os.Build;
+import com.google.api.client.googleapis.media.MediaHttpDownloader;
+
+/* JADX INFO: compiled from: com.google.android.gms:play-services-measurement@@22.4.0 */
+/* JADX INFO: loaded from: classes.dex */
+public final class zzcj {
+    public static final int zza;
+
+    static {
+        zza = Build.VERSION.SDK_INT >= 31 ? MediaHttpDownloader.MAXIMUM_CHUNK_SIZE : 0;
+    }
+}

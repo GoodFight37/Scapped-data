@@ -1,0 +1,73 @@
+package com.google.android.play.core.integrity;
+
+/* JADX INFO: compiled from: com.google.android.play:integrity@@1.3.0 */
+/* JADX INFO: loaded from: classes.dex */
+final class ao extends IntegrityTokenRequest {
+
+    /* JADX INFO: renamed from: a, reason: collision with root package name */
+    private final String f330a;
+    private final Long b;
+    private final Object c = null;
+
+    /* synthetic */ ao(String str, Long l, Object obj, an anVar) {
+        this.f330a = str;
+        this.b = l;
+    }
+
+    private static boolean a() {
+        return true;
+    }
+
+    @Override // com.google.android.play.core.integrity.IntegrityTokenRequest
+    public final Long cloudProjectNumber() {
+        return this.b;
+    }
+
+    /* JADX WARN: Code duplicated, block: B:17:0x002f  */
+    public final boolean equals(Object obj) {
+        boolean z;
+        Long l;
+        if (obj == this) {
+            return true;
+        }
+        if (obj instanceof IntegrityTokenRequest) {
+            IntegrityTokenRequest integrityTokenRequest = (IntegrityTokenRequest) obj;
+            if (!this.f330a.equals(integrityTokenRequest.nonce()) || ((l = this.b) != null ? !l.equals(integrityTokenRequest.cloudProjectNumber()) : integrityTokenRequest.cloudProjectNumber() != null)) {
+                z = false;
+            } else {
+                z = true;
+            }
+        } else {
+            z = false;
+        }
+        if (!(obj instanceof ao) || !a()) {
+            return z;
+        }
+        ao aoVar = (ao) obj;
+        if (!z) {
+            return false;
+        }
+        Object obj2 = aoVar.c;
+        return true;
+    }
+
+    public final int hashCode() {
+        int iHashCode = this.f330a.hashCode() ^ 1000003;
+        Long l = this.b;
+        int iHashCode2 = (iHashCode * 1000003) ^ (l == null ? 0 : l.hashCode());
+        return a() ? iHashCode2 * 1000003 : iHashCode2;
+    }
+
+    @Override // com.google.android.play.core.integrity.IntegrityTokenRequest
+    public final String nonce() {
+        return this.f330a;
+    }
+
+    public final String toString() {
+        String strConcat = "IntegrityTokenRequest{nonce=" + this.f330a + ", cloudProjectNumber=" + this.b;
+        if (a()) {
+            strConcat = strConcat.concat(", network=null");
+        }
+        return strConcat.concat("}");
+    }
+}
